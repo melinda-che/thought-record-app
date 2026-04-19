@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite *)",
+      "Bash(kill %1)",
+      "Bash(curl -s http://localhost:5173/src/main.tsx)"
+    ]
+  }
+}
