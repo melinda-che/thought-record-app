@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Trash2, BookOpen, Check, Heart } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, Trash2, BookOpen, Check, Heart, Mic } from 'lucide-react';
 
 type FormState = {
   situation: string;
@@ -71,6 +71,66 @@ const DISTORTIONS = [
 ];
 
 const FEELINGS = ['Anxious', 'Sad', 'Angry', 'Ashamed', 'Frustrated', 'Overwhelmed', 'Guilty', 'Lonely', 'Scared', 'Hurt'];
+
+function VoiceInputButton({ onTranscript }: { onTranscript: (text: string) => void }) {
+  const [isListening, setIsListening] = useState(false);
+  const recRef = useRef<any>(null);
+  const callbackRef = useRef(onTranscript);
+  callbackRef.current = onTranscript;
+
+  const SR = typeof window !== 'undefined'
+    ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    : null;
+
+  useEffect(() => {
+    if (!SR) return;
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = 'en-US';
+    rec.onresult = (e: any) => {
+      let t = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) t += e.results[i][0].transcript;
+      }
+      if (t.trim()) callbackRef.current(t.trim());
+    };
+    rec.onend = () => setIsListening(false);
+    rec.onerror = () => setIsListening(false);
+    recRef.current = rec;
+    return () => { try { rec.stop(); } catch { /* noop */ } };
+  }, [SR]);
+
+  if (!SR) return null;
+
+  const toggle = () => {
+    const rec = recRef.current;
+    if (!rec) return;
+    if (isListening) {
+      rec.stop();
+    } else {
+      try { rec.start(); setIsListening(true); } catch { /* noop */ }
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+      title={isListening ? 'Stop recording' : 'Speak to fill this field'}
+      className="absolute bottom-3 right-3 p-2 rounded-full transition-all active:scale-95"
+      style={{
+        background: isListening ? '#5C7C6F' : 'rgba(255, 255, 255, 0.85)',
+        color: isListening ? '#F5EFE6' : '#5C7C6F',
+        border: `1px solid ${isListening ? '#5C7C6F' : 'rgba(139, 127, 110, 0.25)'}`,
+        boxShadow: isListening ? '0 0 0 4px rgba(92, 124, 111, 0.2)' : 'none',
+      }}
+    >
+      <Mic size={14} />
+    </button>
+  );
+}
 
 const initialForm: FormState = {
   situation: '',
@@ -335,13 +395,16 @@ export default function App() {
                 <p className="text-sm mb-6" style={{ color: '#5C5248' }}>
                   Describe the moment plainly. Just the facts of what you saw or heard.
                 </p>
-                <textarea
-                  value={form.situation}
-                  onChange={(e) => setForm({ ...form, situation: e.target.value })}
-                  placeholder="My manager gave me quick feedback on my report and walked off without saying more..."
-                  className="w-full p-4 rounded-xl text-[15px] leading-relaxed resize-none"
-                  style={{ background: 'rgba(255, 255, 255, 0.6)', border: '1px solid rgba(139, 127, 110, 0.2)', color: '#2C2825', minHeight: '140px' }}
-                />
+                <div className="relative">
+                  <textarea
+                    value={form.situation}
+                    onChange={(e) => setForm({ ...form, situation: e.target.value })}
+                    placeholder="My manager gave me quick feedback on my report and walked off without saying more..."
+                    className="w-full p-4 pr-14 rounded-xl text-[15px] leading-relaxed resize-none"
+                    style={{ background: 'rgba(255, 255, 255, 0.6)', border: '1px solid rgba(139, 127, 110, 0.2)', color: '#2C2825', minHeight: '140px' }}
+                  />
+                  <VoiceInputButton onTranscript={(t) => setForm((f) => ({ ...f, situation: f.situation + (f.situation ? ' ' : '') + t }))} />
+                </div>
               </div>
             )}
 
@@ -410,13 +473,16 @@ export default function App() {
                 <p className="text-sm mb-6" style={{ color: '#5C5248' }}>
                   The exact thought, in your own voice. The one running on loop.
                 </p>
-                <textarea
-                  value={form.thought}
-                  onChange={(e) => setForm({ ...form, thought: e.target.value })}
-                  placeholder="They think my work isn't good enough. I'm going to get fired..."
-                  className="w-full p-4 rounded-xl text-[15px] leading-relaxed resize-none"
-                  style={{ background: 'rgba(255, 255, 255, 0.6)', border: '1px solid rgba(139, 127, 110, 0.2)', color: '#2C2825', minHeight: '140px' }}
-                />
+                <div className="relative">
+                  <textarea
+                    value={form.thought}
+                    onChange={(e) => setForm({ ...form, thought: e.target.value })}
+                    placeholder="They think my work isn't good enough. I'm going to get fired..."
+                    className="w-full p-4 pr-14 rounded-xl text-[15px] leading-relaxed resize-none"
+                    style={{ background: 'rgba(255, 255, 255, 0.6)', border: '1px solid rgba(139, 127, 110, 0.2)', color: '#2C2825', minHeight: '140px' }}
+                  />
+                  <VoiceInputButton onTranscript={(t) => setForm((f) => ({ ...f, thought: f.thought + (f.thought ? ' ' : '') + t }))} />
+                </div>
               </div>
             )}
 
@@ -482,13 +548,16 @@ export default function App() {
                   <div className="text-[13px] italic leading-relaxed" style={{ color: '#5C5248' }}>"{form.thought}"</div>
                 </div>
 
-                <textarea
-                  value={form.balanced}
-                  onChange={(e) => setForm({ ...form, balanced: e.target.value })}
-                  placeholder="Quick feedback doesn't mean the work was bad. My manager is busy, and one interaction isn't the whole story..."
-                  className="w-full p-4 rounded-xl text-[15px] leading-relaxed resize-none mb-6"
-                  style={{ background: 'rgba(255, 255, 255, 0.6)', border: '1px solid rgba(139, 127, 110, 0.2)', color: '#2C2825', minHeight: '120px' }}
-                />
+                <div className="relative mb-6">
+                  <textarea
+                    value={form.balanced}
+                    onChange={(e) => setForm({ ...form, balanced: e.target.value })}
+                    placeholder="Quick feedback doesn't mean the work was bad. My manager is busy, and one interaction isn't the whole story..."
+                    className="w-full p-4 pr-14 rounded-xl text-[15px] leading-relaxed resize-none"
+                    style={{ background: 'rgba(255, 255, 255, 0.6)', border: '1px solid rgba(139, 127, 110, 0.2)', color: '#2C2825', minHeight: '120px' }}
+                  />
+                  <VoiceInputButton onTranscript={(t) => setForm((f) => ({ ...f, balanced: f.balanced + (f.balanced ? ' ' : '') + t }))} />
+                </div>
 
                 <div className="p-5 rounded-xl mb-8" style={{ background: 'rgba(255, 255, 255, 0.5)' }}>
                   <div className="flex justify-between items-baseline mb-2">
@@ -534,13 +603,16 @@ export default function App() {
                     <div className="text-[10px] uppercase tracking-[0.25em] mb-2" style={{ color: '#8B7F6E' }}>
                       Something you're grateful for today
                     </div>
-                    <textarea
-                      value={form.gratitude}
-                      onChange={(e) => setForm({ ...form, gratitude: e.target.value })}
-                      placeholder="The way the morning light looked through my window, a kind text from my friend, making it through a difficult conversation..."
-                      className="w-full p-4 rounded-xl text-[15px] leading-relaxed resize-none"
-                      style={{ background: 'rgba(255, 255, 255, 0.6)', border: '1px solid rgba(139, 127, 110, 0.2)', color: '#2C2825', minHeight: '80px' }}
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={form.gratitude}
+                        onChange={(e) => setForm({ ...form, gratitude: e.target.value })}
+                        placeholder="The way the morning light looked through my window, a kind text from my friend, making it through a difficult conversation..."
+                        className="w-full p-4 pr-14 rounded-xl text-[15px] leading-relaxed resize-none"
+                        style={{ background: 'rgba(255, 255, 255, 0.6)', border: '1px solid rgba(139, 127, 110, 0.2)', color: '#2C2825', minHeight: '80px' }}
+                      />
+                      <VoiceInputButton onTranscript={(t) => setForm((f) => ({ ...f, gratitude: f.gratitude + (f.gratitude ? ' ' : '') + t }))} />
+                    </div>
                   </div>
                 )}
               </div>
