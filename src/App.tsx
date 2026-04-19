@@ -1,10 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Trash2, BookOpen, Check, X, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Trash2, BookOpen, Check, Heart } from 'lucide-react';
+
+type FormState = {
+  situation: string;
+  feelings: string[];
+  intensity: number;
+  thought: string;
+  distortions: string[];
+  balanced: string;
+  newIntensity: number;
+  includeGratitude: boolean;
+  gratitude: string;
+};
+
+type Entry = FormState & { id: string; date: number };
 
 // Storage helper for localStorage
 const storageHelper = {
-  async list(prefix) {
-    const keys = [];
+  async list(prefix: string) {
+    const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(prefix)) {
@@ -13,18 +27,18 @@ const storageHelper = {
     }
     return { keys };
   },
-  
-  async get(key) {
+
+  async get(key: string) {
     const value = localStorage.getItem(key);
     return value ? { value } : null;
   },
-  
-  async set(key, value) {
+
+  async set(key: string, value: string) {
     localStorage.setItem(key, value);
     return { key, value };
   },
-  
-  async delete(key) {
+
+  async delete(key: string) {
     localStorage.removeItem(key);
     return { key, deleted: true };
   }
@@ -58,7 +72,7 @@ const DISTORTIONS = [
 
 const FEELINGS = ['Anxious', 'Sad', 'Angry', 'Ashamed', 'Frustrated', 'Overwhelmed', 'Guilty', 'Lonely', 'Scared', 'Hurt'];
 
-const initialForm = {
+const initialForm: FormState = {
   situation: '',
   feelings: [],
   intensity: 5,
@@ -72,11 +86,11 @@ const initialForm = {
 
 export default function App() {
   const [view, setView] = useState('home');
-  const [entries, setEntries] = useState([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState<FormState>(initialForm);
   const [loading, setLoading] = useState(true);
-  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
 
   useEffect(() => {
     loadEntries();
@@ -120,7 +134,7 @@ export default function App() {
     }
   }
 
-  async function deleteEntry(id) {
+  async function deleteEntry(id: string) {
     try {
       await storageHelper.delete(`entries:${id}`);
       setEntries(entries.filter((e) => e.id !== id));
@@ -131,14 +145,14 @@ export default function App() {
     }
   }
 
-  function toggleFeeling(f) {
+  function toggleFeeling(f: string) {
     setForm({
       ...form,
       feelings: form.feelings.includes(f) ? form.feelings.filter((x) => x !== f) : [...form.feelings, f],
     });
   }
 
-  function toggleDistortion(id) {
+  function toggleDistortion(id: string) {
     setForm({
       ...form,
       distortions: form.distortions.includes(id) ? form.distortions.filter((x) => x !== id) : [...form.distortions, id],
